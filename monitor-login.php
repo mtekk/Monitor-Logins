@@ -40,7 +40,7 @@ add_filter('authenticate', 'llogin', 9999, 3);
 function llogin($user, $username, $password)
 {
 	//If the login was unsucessfull, we have some work to do
-	if(is_wp_error($user))
+	if(is_wp_error($user) && $username !== '')
 	{
 		//If the username exists send them an email
 		if($user_id = username_exists($username))
