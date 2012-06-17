@@ -57,6 +57,7 @@ class mtekk_monitor_login
 	{
 		//Hook into the profile personal options
 		add_action('personal_options', array($this, 'personal_options'));
+		add_filter('admin_footer_text', array($this, 'activity'), 10);
 	}
 	/**
 	 * Adds the user specific extra options to the personal options area
@@ -90,6 +91,56 @@ class mtekk_monitor_login
 		{
 			update_user_meta($user_id, $this->unique_prefix . '_send_notification_emails', isset($_POST[$this->unique_prefix . '_send_notification_emails']));
 		}
+	}
+	/**
+	 * Adds on an login "activity" text portion to the bottom of the screen, ala what Gmail does
+	 * 
+	 * @param array $footer_text The footer text array
+	 */
+	function activity($footer_text)
+	{
+		global $current_user;
+		//Call is unnecessary, but done for good measure
+		get_currentuserinfo();
+		//Get the login stream
+		$activity = get_user_meta($current_user->data->ID, $this->unique_prefix . '_activity', true);
+		if(is_array($activity))
+		{
+			//Look at the last login
+			$last_login = $activity[0]['time'];
+		}
+		else
+		{
+			$last_login = date('Y-m-d H:i:s', time());
+		}
+		//Turn last_login into datetime
+		$last = new DateTime($last_login);
+		//Get the current time
+		$currently = new DateTime();
+		//Get our time difference
+		$interval = $currently->diff($last);
+		//Grab days
+		$days = $interval->format('%d');
+		//Grab hours
+		$hours = $interval->format('%H');
+		//Grab minutes
+		$minutes = $interval->format('%i');
+		$time_ago = '';
+		if($days > 0)
+		{
+			$time_ago .= sprintf(_n('%d day ago.', '%d days ago.', $days, 'monitor_login'), $days);
+		}
+		else if($hours > 0)
+		{
+			$time_ago .= sprintf(_n('%d hour ago.', '%d hours ago.', $hours, 'monitor_login'), $hours);
+		}
+		else
+		{
+			$time_ago .= sprintf(_n('%d minute ago.', '%d minutes ago.', $minutes, 'monitor_login'), $minutes);
+		}
+		$details = sprintf('<a href="">%s</a>', __('Details', 'monitor_login'));
+		$footer_text .= ' &bull; ' . sprintf(__('Last account activity: %s', 'monitor_login'), $time_ago) . ' ' . $details;
+		return $footer_text;
 	}
 	/**
 	 * We hook this function into the authenticate filter, allowing us to do some cool things.
@@ -136,11 +187,12 @@ class mtekk_monitor_login
 			}
 			//Compose our message
 			$message = __('Someone attempted to login using:', 'monitor_login') . "\r\n";
-			$message .= __('Login:', 'monitor_login') . ' ' . $username . "\r\n";
-			$message .= __('Password:', 'monitor_login') . ' '. $password . "\r\n";
-			$message .= __('IP Address:', 'monitor_login') . ' ' . $ip . "\r\n";
+			$message .= __('Login:', 'monitor_login') . ' ' . esc_attr($username) . "\r\n";
+			$message .= __('Password:', 'monitor_login') . ' '. esc_attr($password) . "\r\n";
+			$message .= __('IP Address:', 'monitor_login') . ' ' . esc_attr($ip) . "\r\n";
 			$message .= __('WordPress Address:', 'monitor_login') . ' ' . get_option('siteurl') . "\r\n";
 			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
+			$message .= __('User Agent:', 'monitor_login') . ' ' .  esc_attr($_SERVER['HTTP_USER_AGENT']) . "\r\n";
 			$message .= __('If this was not you, someone may be trying to gain unauthorized access to your account.', 'monitor_login');
 			$subject = __('Unsucessfull Login Attempt', 'monitor_login');
 			//Send our email out
