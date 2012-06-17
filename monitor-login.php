@@ -138,7 +138,7 @@ class mtekk_monitor_login
 		{
 			$time_ago .= sprintf(_n('%d minute ago.', '%d minutes ago.', $minutes, 'monitor_login'), $minutes);
 		}
-		$details = sprintf('<a href="">%s</a>', __('Details', 'monitor_login'));
+		$details = sprintf('<a href="%s" title="%s">%s</a>', get_admin_url(get_current_blog_id(), 'profile.php#activity'), __('See your account login activity details.', 'monitor_login'), __('Details', 'monitor_login'));
 		$footer_text .= ' &bull; ' . sprintf(__('Last account activity: %s', 'monitor_login'), $time_ago) . ' ' . $details;
 		return $footer_text;
 	}
