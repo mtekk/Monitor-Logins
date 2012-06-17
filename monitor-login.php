@@ -27,10 +27,13 @@ DomainPath: /languages/
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+//Hook into the authenticate filter, we want to run close to last
 add_filter('authenticate', 'llogin', 9999, 3);
 
 /**
- * We hook this function into the authenticate filter, allowing us to do some cool things
+ * We hook this function into the authenticate filter, allowing us to do some cool things.
+ * Yes we send an email out from within this filter hook, but we want/need to know the
+ * attempted password
  * 
  * @param WP_User $user A user object, may be null
  * @param string $username The username that was used in the login attempt
@@ -68,6 +71,7 @@ function llogin($user, $username, $password)
 		$message .= __('Password:') . ' '. $password . "\r\n";
 		$message .= __('IP Address:') . ' ' . $ip . "\r\n";
 		$message .= __('WordPress Address:') . ' ' . get_option('siteurl') . "\r\n";
+		$message .= __('At: ') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
 		$message .= __('If this was not you, someone may be trying to gain unauthorized access to your account');
 		$subject = __('Unsucessfull Login Attempt');
 		//Send our email out
