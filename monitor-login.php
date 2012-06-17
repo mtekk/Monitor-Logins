@@ -52,6 +52,8 @@ class mtekk_monitor_login
 		add_filter('authenticate', array($this, 'send_bad_login'), 9999, 3);
 		add_action('admin_init', array($this, 'admin_init'));
 		add_action('edit_user_profile_update', array($this, 'update_personal_options'));
+		//We'll use this to recorde sucessfull logins
+		add_action('wp_login', array($this, 'login_log'), 99, 2);
 	}
 	function admin_init()
 	{
@@ -111,7 +113,7 @@ class mtekk_monitor_login
 		}
 		else
 		{
-			$last_login = date('Y-m-d H:i:s', time());
+			$last_login = date('Y-m-d H:i:s');
 		}
 		//Turn last_login into datetime
 		$last = new DateTime($last_login);
@@ -141,6 +143,41 @@ class mtekk_monitor_login
 		$details = sprintf('<a href="%s" title="%s">%s</a>', get_admin_url(get_current_blog_id(), 'profile.php#activity'), __('See your account login activity details.', 'monitor_login'), __('Details', 'monitor_login'));
 		$footer_text .= ' &bull; ' . sprintf(__('Last account activity: %s', 'monitor_login'), $time_ago) . ' ' . $details;
 		return $footer_text;
+	}
+	/**
+	 * This function logs the IP, user agent, and time when a user is logged in
+	 * 
+	 * @param string $login The user's login name
+	 * @param WP_User $user The user object
+	 */
+	function login_log($login, $user)
+	{
+		//Figure out the email address
+		if(isset($_SERVER['HTTP_X_FORWARDED_FOR']))
+		{
+			$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+		}
+		else
+		{
+			$ip = $_SERVER['REMOTE_ADDR'];
+		}
+		$log = array();
+		$log['ip'] = esc_attr($ip);
+		$log['useragent'] = esc_attr($_SERVER['HTTP_USER_AGENT']);
+		$log['time'] = date('Y-m-d H:i:s');
+		//Get the login stream
+		$activity = get_user_meta($user->data->ID, $this->unique_prefix . '_activity', true);
+		//If we didn't get a stream, set it up
+		if(!is_array($activity))
+		{
+			$activity = array(0 => '');
+		}
+		//Place our new low in the front
+		array_unshift($activity, $log);
+		//Pop the last element off the end
+		array_pop($activity);
+		//Store our updated activity stream
+		update_user_meta($user->data->ID, $this->unique_prefix . '_activity', $activity);
 	}
 	/**
 	 * We hook this function into the authenticate filter, allowing us to do some cool things.
