@@ -27,55 +27,127 @@ DomainPath: /languages/
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-//Hook into the authenticate filter, we want to run close to last
-add_filter('authenticate', 'llogin', 9999, 3);
-
 /**
- * We hook this function into the authenticate filter, allowing us to do some cool things.
- * Yes we send an email out from within this filter hook, but we want/need to know the
- * attempted password
- * 
- * @param WP_User $user A user object, may be null
- * @param string $username The username that was used in the login attempt
- * @param string $password The password that use used in the login attempt
- * @return WP_User|WP_Error object
+ * The administrative interface class 
  */
-function llogin($user, $username, $password)
+class mtekk_monitor_login
 {
-	//If the login was unsucessfull, we have some work to do
-	if(is_wp_error($user) && $username !== '')
+	protected $version = '0.0.100';
+	protected $full_name = 'Monitor Login';
+	protected $short_name = 'Monitor Login';
+	protected $access_level = 'manage_options';
+	protected $identifier = 'monitor_login';
+	protected $unique_prefix = 'mlog';
+	protected $plugin_basename = 'monitor_login/monitor_login.php';
+	/**
+	 * mlba_video
+	 * 
+	 * Class default constructor
+	 */
+	function __construct()
 	{
-		//If the username exists send them an email
-		if($user_id = username_exists($username))
-		{
-			$auser = get_user_by('id', $user_id);
-			$email = $auser->data->user_email;
-		}
-		//Otherwise send the admin an email
-		else
-		{
-			$email = get_option('admin_email');
-		}
-		//Figure out the email address
-		if(isset($_SERVER['HTTP_X_FORWARDED_FOR']))
-		{
-			$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-		}
-		else
-		{
-			$ip = $_SERVER['REMOTE_ADDR'];
-		}
-		//Compose our message
-		$message = __('Someone attempted to login using:') . "\r\n";
-		$message .= __('Login:') . ' ' . $username . "\r\n";
-		$message .= __('Password:') . ' '. $password . "\r\n";
-		$message .= __('IP Address:') . ' ' . $ip . "\r\n";
-		$message .= __('WordPress Address:') . ' ' . get_option('siteurl') . "\r\n";
-		$message .= __('At: ') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
-		$message .= __('If this was not you, someone may be trying to gain unauthorized access to your account');
-		$subject = __('Unsucessfull Login Attempt');
-		//Send our email out
-		wp_mail($email, $subject, $message);
+		//We set the plugin basename here, could manually set it, but this is for demonstration purposes
+		$this->plugin_basename = plugin_basename(__FILE__);
+		//Hook into the authenticate filter, we want to run close to last
+		add_filter('authenticate', array($this, 'send_bad_login'), 9999, 3);
+		add_action('admin_init', array($this, 'admin_init'));
+		add_action('edit_user_profile_update', array($this, 'update_personal_options'));
 	}
-	return $user;
+	function admin_init()
+	{
+		//Hook into the profile personal options
+		add_action('personal_options', array($this, 'personal_options'));
+	}
+	/**
+	 * Adds the user specific extra options to the personal options area
+	 * 
+	 * @param WP_User $user The current user object
+	 */
+	function personal_options($user)
+	{
+		$notify = get_user_meta($user->ID, $this->unique_prefix . '_send_notification_emails', true);
+		?>
+		<tr>
+			<th scope="row"><?php _e('Account Monitoring', 'monitor_login');?></th>
+			<td>
+				<label for="<?php echo $this->unique_prefix;?>_send_notification_emails">
+					<input id="<?php echo $this->unique_prefix;?>_send_notification_emails" name="<?php echo $this->unique_prefix;?>_send_notification_emails" type="checkbox" value="true" <?php checked(true, $notify);?>/>
+					<?php _e('Send an email when a failed login attempt occurs.', 'monitor_login');?>
+				</label>
+			</td>
+		</tr>
+		<?php
+	}
+	/**
+	 * Saves the state of the added peronal options
+	 * 
+	 * @param int $user_id The ID of the user we're saving for
+	 */
+	function update_personal_options($user_id)
+	{
+		//Only let stuff be changed by users that are allowed to change things
+		if(current_user_can('edit_user', $user_id))
+		{
+			update_user_meta($user_id, $this->unique_prefix . '_send_notification_emails', isset($_POST[$this->unique_prefix . '_send_notification_emails']));
+		}
+	}
+	/**
+	 * We hook this function into the authenticate filter, allowing us to do some cool things.
+	 * Yes we send an email out from within this filter hook, but we want/need to know the
+	 * attempted password
+	 * 
+	 * @param WP_User $user A user object, may be null
+	 * @param string $username The username that was used in the login attempt
+	 * @param string $password The password that use used in the login attempt
+	 * @return WP_User|WP_Error object
+	 */
+	function send_bad_login($user, $username, $password)
+	{
+		//If the login was unsucessfull, we have some work to do
+		if(is_wp_error($user) && $username !== '')
+		{
+			//If the username exists send them an email
+			if($user_id = username_exists($username))
+			{
+				//Only send end user notifications if they've signed up for them
+				if(get_user_meta($user_id, $this->unique_prefix . '_send_notification_emails', true))
+				{
+					$auser = get_user_by('id', $user_id);
+					$email = $auser->data->user_email;
+				}
+				else
+				{
+					return $user;	
+				}
+			}
+			//Otherwise send the admin an email
+			else
+			{
+				$email = get_option('admin_email');
+			}
+			//Figure out the email address
+			if(isset($_SERVER['HTTP_X_FORWARDED_FOR']))
+			{
+				$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+			}
+			else
+			{
+				$ip = $_SERVER['REMOTE_ADDR'];
+			}
+			//Compose our message
+			$message = __('Someone attempted to login using:', 'monitor_login') . "\r\n";
+			$message .= __('Login:', 'monitor_login') . ' ' . $username . "\r\n";
+			$message .= __('Password:', 'monitor_login') . ' '. $password . "\r\n";
+			$message .= __('IP Address:', 'monitor_login') . ' ' . $ip . "\r\n";
+			$message .= __('WordPress Address:', 'monitor_login') . ' ' . get_option('siteurl') . "\r\n";
+			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
+			$message .= __('If this was not you, someone may be trying to gain unauthorized access to your account.', 'monitor_login');
+			$subject = __('Unsucessfull Login Attempt', 'monitor_login');
+			//Send our email out
+			wp_mail($email, $subject, $message);
+			//var_dump($email, $subject, $message);
+		}
+		return $user;
+	}
 }
+$mtekk_monitor_login = new mtekk_monitor_login;
