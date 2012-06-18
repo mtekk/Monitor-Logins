@@ -51,9 +51,13 @@ class mtekk_monitor_login
 		//Hook into the authenticate filter, we want to run close to last
 		add_filter('authenticate', array($this, 'send_bad_login'), 9999, 3);
 		add_action('admin_init', array($this, 'admin_init'));
+		//Need to hook to both the edit and personal actions with the same function
 		add_action('edit_user_profile_update', array($this, 'update_personal_options'));
+		add_action('personal_options_update', array($this, 'update_personal_options'));
 		//We'll use this to recorde sucessfull logins
 		add_action('wp_login', array($this, 'login_log'), 99, 2);
+		//We show our activity history in the user profile page
+		add_action('show_user_profile', array($this, 'activity_history'));
 	}
 	function admin_init()
 	{
@@ -92,6 +96,51 @@ class mtekk_monitor_login
 		if(current_user_can('edit_user', $user_id))
 		{
 			update_user_meta($user_id, $this->unique_prefix . '_send_notification_emails', isset($_POST[$this->unique_prefix . '_send_notification_emails']));
+		}
+	}
+	/**
+	 * Adds the user specific login activity history block
+	 * 
+	 * @param WP_User $user The current user object
+	 */
+	function activity_history($user)
+	{
+		global $current_user;
+		$activity = get_user_meta($user->data->ID, $this->unique_prefix . '_activity', true);
+		echo '<h3 id="activity">' . __('Login Activity', 'monitor_login') . '</h3>';
+		//Check to ensure we have activity to show
+		if(is_array($activity))
+		{
+			$alt = 1;
+			?>
+			<table class="widefat">
+				<thead>
+					<tr>
+						<th scope="col"><?php _e('User Agent', 'monitor_login'); ?></th>
+						<th scope="col"><?php _e('IP Address', 'monitor_login'); ?></th>
+						<th scope="col"><?php _e('Date/Time', 'monitor_login'); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php
+					foreach($activity as $event)
+					{
+						?>
+						<tr <?php if(!$alt){ echo 'class="alternate"'; $alt = 1;} else{ $alt = 0;}?>>
+							<td><?php echo esc_attr($event['useragent']);?></td>
+							<td><?php echo esc_attr($event['ip']);?></td>
+							<td><?php echo esc_attr($event['time']);?></td>
+						</tr>
+						<?php
+					}
+					?>
+				</tbody>
+			</table>
+			<?php
+		}
+		else
+		{
+			_e('No login history to show.', 'monitor_login');
 		}
 	}
 	/**
@@ -136,9 +185,13 @@ class mtekk_monitor_login
 		{
 			$time_ago .= sprintf(_n('%d hour ago.', '%d hours ago.', $hours, 'monitor_login'), $hours);
 		}
-		else
+		else if($minutes > 0)
 		{
 			$time_ago .= sprintf(_n('%d minute ago.', '%d minutes ago.', $minutes, 'monitor_login'), $minutes);
+		}
+		else
+		{
+			$time_ago .= __('Just now.', 'monitor_login');
 		}
 		$details = sprintf('<a href="%s" title="%s">%s</a>', get_admin_url(get_current_blog_id(), 'profile.php#activity'), __('See your account login activity details.', 'monitor_login'), __('Details', 'monitor_login'));
 		$footer_text .= ' &bull; ' . sprintf(__('Last account activity: %s', 'monitor_login'), $time_ago) . ' ' . $details;
@@ -170,12 +223,16 @@ class mtekk_monitor_login
 		//If we didn't get a stream, set it up
 		if(!is_array($activity))
 		{
-			$activity = array(0 => '');
+			$activity = array();
 		}
 		//Place our new low in the front
 		array_unshift($activity, $log);
-		//Pop the last element off the end
-		array_pop($activity);
+		//Only pop if we're full
+		if(isset($activity[9]))
+		{
+			//Pop the last element off the end
+			array_pop($activity);
+		}
 		//Store our updated activity stream
 		update_user_meta($user->data->ID, $this->unique_prefix . '_activity', $activity);
 	}
