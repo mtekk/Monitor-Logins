@@ -1,9 +1,9 @@
 <?php
 /*
-Plugin Name: Monitor Login
+Plugin Name: Monitor Logins
 Plugin URI: http://mtekk.us/code/
 Description: Simple plugin that monitors the login and password for the admin account
-Version: 0.0.1
+Version: 0.0.3
 Author: John Havlik
 Author URI: http://mtekk.us/
 License: GPL2
@@ -32,8 +32,8 @@ DomainPath: /languages/
  */
 class mtekk_monitor_login
 {
-	protected $version = '0.0.100';
-	protected $full_name = 'Monitor Login';
+	protected $version = '0.0.3';
+	protected $full_name = 'Monitor Logins';
 	protected $short_name = 'Monitor Login';
 	protected $access_level = 'manage_options';
 	protected $identifier = 'monitor_login';
