@@ -3,7 +3,7 @@
 Plugin Name: Monitor Logins
 Plugin URI: http://mtekk.us/code/
 Description: Simple plugin that monitors the login and password for the admin account
-Version: 0.0.3
+Version: 0.0.4
 Author: John Havlik
 Author URI: http://mtekk.us/
 License: GPL2
@@ -11,7 +11,7 @@ TextDomain: monitor-login
 DomainPath: /languages/
 
 */
-/*  Copyright 2007-2012  John Havlik  (email : mtekkmonkey@gmail.com)
+/*  Copyright 2012  John Havlik  (email : mtekkmonkey@gmail.com)
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -270,7 +270,7 @@ class mtekk_monitor_login
 			{
 				$email = get_option('admin_email');
 			}
-			//Figure out the email address
+			//Figure out the IP address
 			if(isset($_SERVER['HTTP_X_FORWARDED_FOR']))
 			{
 				$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
@@ -285,6 +285,7 @@ class mtekk_monitor_login
 			$message .= __('Password:', 'monitor_login') . ' '. esc_attr($password) . "\r\n";
 			$message .= __('IP Address:', 'monitor_login') . ' ' . esc_attr($ip) . "\r\n";
 			$message .= __('WordPress Address:', 'monitor_login') . ' ' . get_option('siteurl') . "\r\n";
+			$message .= __('Resource:', 'monitor_login') . ' ' . esc_url($_SERVER['HTTP_REFERER']) . "\r\n";
 			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
 			$message .= __('User Agent:', 'monitor_login') . ' ' .  esc_attr($_SERVER['HTTP_USER_AGENT']) . "\r\n";
 			$message .= __('If this was not you, someone may be trying to gain unauthorized access to your account.', 'monitor_login');
