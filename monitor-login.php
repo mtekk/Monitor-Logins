@@ -282,16 +282,17 @@ class mtekk_monitor_login
 			//Compose our message
 			$message = __('Someone attempted to login using:', 'monitor_login') . "\r\n";
 			$message .= __('Login:', 'monitor_login') . ' ' . esc_attr($username) . "\r\n";
-			$message .= __('Password:', 'monitor_login') . ' '. esc_attr($password) . "\r\n";
+			$message .= __('Password:', 'monitor_login') . ' '. esc_attr(apply_filters($this->unique_prefix . '_password', $password)) . "\r\n";
 			$message .= __('IP Address:', 'monitor_login') . ' ' . esc_attr($ip) . "\r\n";
 			$message .= __('WordPress Address:', 'monitor_login') . ' ' . get_option('siteurl') . "\r\n";
-			$message .= __('Resource:', 'monitor_login') . ' ' . esc_url($_SERVER['HTTP_REFERER']) . "\r\n";
+			$message .= __('Resource:', 'monitor_login') . ' ' . esc_url($_SERVER['REQUEST_URI']) . "\r\n";
+			$message .= __('Referer:', 'monitor_login') . ' ' . esc_url($_SERVER['HTTP_REFERER']) . "\r\n";
 			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
 			$message .= __('User Agent:', 'monitor_login') . ' ' .  esc_attr($_SERVER['HTTP_USER_AGENT']) . "\r\n";
 			$message .= __('If this was not you, someone may be trying to gain unauthorized access to your account.', 'monitor_login');
-			$subject = __('Unsucessfull Login Attempt', 'monitor_login');
+			$subject = __('Unsuccessful Login Attempt', 'monitor_login');
 			//Send our email out
-			wp_mail($email, $subject, $message);
+			wp_mail($email, $subject, apply_filters($this->unique_prefix . '_message', $message));
 			//var_dump($email, $subject, $message);
 		}
 		return $user;
