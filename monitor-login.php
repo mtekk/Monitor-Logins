@@ -58,6 +58,10 @@ class mtekk_monitor_login
 		add_action('wp_login', array($this, 'login_log'), 99, 2);
 		//We show our activity history in the user profile page
 		add_action('show_user_profile', array($this, 'activity_history'));
+		//We want to add some custom login fields
+		add_action('login_form', array($this, 'custom_login_fields'));
+		//We need to check against our custom login fields
+		add_filter('authenticate', array($this, 'verify_custom_fields'), 10, 3);
 	}
 	function admin_init()
 	{
@@ -84,6 +88,35 @@ class mtekk_monitor_login
 			</td>
 		</tr>
 		<?php
+	}
+	/**
+	 * Adds a nonce, and a few other hidden fields to catch really stupid bots
+	 */
+	function custom_login_fields()
+	{
+		wp_nonce_field('login', $this->unique_prefix . '_nonce');
+	}
+	/**
+	 * We hook this function into the authenticate filter to verify our custom
+	 * fields for login validation
+	 * 
+	 * @param WP_User $user A user object, may be null
+	 * @param string $username The username that was used in the login attempt
+	 * @param string $password The password that use used in the login attempt
+	 * @return WP_User|WP_Error object
+	 */
+	function verify_custom_fields($user, $username, $password)
+	{
+		//If we already have an error, or we have a valid nonce, you're clear to go
+		if(is_wp_error($user) || wp_verify_nonce('login', $_REQUEST[$this->unique_prefix . '_nonce']))
+		{
+			return $user;
+		}
+		
+		$error = new WP_Error();
+		// This error should be the same as in "shake it" filter below
+		$error->add('invalid_nonce', __('Invalid login detected.', 'monitor_login'));
+		return $error;
 	}
 	/**
 	 * Saves the state of the added peronal options
