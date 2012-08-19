@@ -61,7 +61,7 @@ class mtekk_monitor_login
 		//We want to add some custom login fields
 		add_action('login_form', array($this, 'custom_login_fields'));
 		//We need to check against our custom login fields
-		add_filter('authenticate', array($this, 'verify_custom_fields'), 10, 3);
+		add_filter('wp_authenticate_user', array($this, 'verify_custom_fields'), 10, 2);
 	}
 	function admin_init()
 	{
@@ -97,26 +97,25 @@ class mtekk_monitor_login
 		wp_nonce_field('login', $this->unique_prefix . '_nonce');
 	}
 	/**
-	 * We hook this function into the authenticate filter to verify our custom
+	 * We hook this function into the wp_authenticate_user filter to verify our custom
 	 * fields for login validation
 	 * 
 	 * @param WP_User $user A user object, may be null
-	 * @param string $username The username that was used in the login attempt
 	 * @param string $password The password that use used in the login attempt
 	 * @return WP_User|WP_Error object
 	 */
-	function verify_custom_fields($user, $username, $password)
+	function verify_custom_fields($user, $password)
 	{
+		//var_dump(wp_verify_nonce('login', $_REQUEST[$this->unique_prefix . '_nonce']));
 		//If we already have an error, or we have a valid nonce, you're clear to go
-		if(is_wp_error($user) || wp_verify_nonce('login', $_REQUEST[$this->unique_prefix . '_nonce']))
-		{
+		//if(is_wp_error($user) || (isset($_REQUEST[$this->unique_prefix . '_nonce']) && wp_verify_nonce('login', $_REQUEST[$this->unique_prefix . '_nonce']) > 0))
+		//{
 			return $user;
-		}
-		
+		/*}
 		$error = new WP_Error();
 		// This error should be the same as in "shake it" filter below
 		$error->add('invalid_nonce', __('Invalid login detected.', 'monitor_login'));
-		return $error;
+		return $error;*/
 	}
 	/**
 	 * Saves the state of the added peronal options
@@ -238,7 +237,7 @@ class mtekk_monitor_login
 	 */
 	function login_log($login, $user)
 	{
-		//Figure out the email address
+		//Figure out the ip address
 		if(isset($_SERVER['HTTP_X_FORWARDED_FOR']))
 		{
 			$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
@@ -268,6 +267,36 @@ class mtekk_monitor_login
 		}
 		//Store our updated activity stream
 		update_user_meta($user->data->ID, $this->unique_prefix . '_activity', $activity);
+	}
+	/**
+	 * This function checks to see if the device is new when a user logs in
+	 * if it is new, and the user has notifications enabled an email will be sent
+	 * 
+	 * @param string $login The user's login name
+	 * @param WP_User $user The user object
+	 */
+	function dev_check($login, $user)
+	{
+		//Figure out the ip address
+		if(isset($_SERVER['HTTP_X_FORWARDED_FOR']))
+		{
+			$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+		}
+		else
+		{
+			$ip = $_SERVER['REMOTE_ADDR'];
+		}
+		$known_devices = get_user_meta($user->data->ID, $this->unique_prefix . '_known_devices', true);
+		foreach($known_devices as $key => $device)
+		{
+			if($device['ip'] === esc_attr($ip))
+			{
+				if($device['useragent'] === esc_attr($_SERVER['HTTP_USER_AGENT']))
+				{
+					$known_devices[$key]['lastseen'] = date('Y-m-d H:i:s');
+				}
+			}
+		}
 	}
 	/**
 	 * We hook this function into the authenticate filter, allowing us to do some cool things.
@@ -322,6 +351,7 @@ class mtekk_monitor_login
 			$message .= __('Referer:', 'monitor_login') . ' ' . esc_url($_SERVER['HTTP_REFERER']) . "\r\n";
 			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
 			$message .= __('User Agent:', 'monitor_login') . ' ' .  esc_attr($_SERVER['HTTP_USER_AGENT']) . "\r\n";
+			$message .= __('$_REQUEST:', 'monitor_login') . ' ' .  esc_attr($_REQUEST) . "\r\n";
 			$message .= __('If this was not you, someone may be trying to gain unauthorized access to your account.', 'monitor_login');
 			$subject = __('Unsuccessful Login Attempt', 'monitor_login');
 			//Send our email out
