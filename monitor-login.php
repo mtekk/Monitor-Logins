@@ -56,6 +56,7 @@ class mtekk_monitor_login
 		add_action('personal_options_update', array($this, 'update_personal_options'));
 		//We'll use this to recorde sucessfull logins
 		add_action('wp_login', array($this, 'login_log'), 99, 2);
+		add_action('wp_login', array($this, 'dev_check'), 99, 2);
 		//We show our activity history in the user profile page
 		add_action('show_user_profile', array($this, 'activity_history'));
 		//We want to add some custom login fields
@@ -286,16 +287,40 @@ class mtekk_monitor_login
 		{
 			$ip = $_SERVER['REMOTE_ADDR'];
 		}
+		$known = false;
+		//Get our array of known devices for this user
 		$known_devices = get_user_meta($user->data->ID, $this->unique_prefix . '_known_devices', true);
+		//Loop through them all
 		foreach($known_devices as $key => $device)
 		{
+			//Check IP first
 			if($device['ip'] === esc_attr($ip))
 			{
+				//Check useragent next
 				if($device['useragent'] === esc_attr($_SERVER['HTTP_USER_AGENT']))
 				{
+					//Update the last seen time
 					$known_devices[$key]['lastseen'] = date('Y-m-d H:i:s');
+					$known = true;
+					//Might as well stop here
+					break;
 				}
 			}
+		}
+		//If the device is unkonwn warn the user
+		if(!$known)
+		{
+			//Compose our message
+			$message = __('Someone sucessfully logged in using:', 'monitor_login') . "\r\n";
+			$message .= __('Login:', 'monitor_login') . ' ' . esc_attr($username) . "\r\n";
+			$message .= __('IP Address:', 'monitor_login') . ' ' . esc_attr($ip) . "\r\n";
+			$message .= __('WordPress Address:', 'monitor_login') . ' ' . get_option('siteurl') . "\r\n";
+			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
+			$message .= __('User Agent:', 'monitor_login') . ' ' .  esc_attr($_SERVER['HTTP_USER_AGENT']) . "\r\n";
+			$message .= __('If this was not you, someone may have gained unauthorized access to your account.', 'monitor_login');
+			$subject = __('Unknown Device Login Attempt', 'monitor_login');
+			//Send our email out
+			wp_mail($email, $subject, apply_filters($this->unique_prefix . '_message', $message));
 		}
 	}
 	/**
