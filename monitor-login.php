@@ -27,8 +27,12 @@ DomainPath: /languages/
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+if(!function_exists('random_string'))
+{
+	require_once(dirname(__FILE__) . '/includes/random_string.php');
+}
 /**
- * The administrative interface class 
+ * The plugin class 
  */
 class mtekk_monitor_login
 {
@@ -315,7 +319,7 @@ class mtekk_monitor_login
 		{
 			//Compose our message
 			$message = __('Someone sucessfully logged in using:', 'monitor_login') . "\r\n";
-			$message .= __('Login:', 'monitor_login') . ' ' . esc_attr($username) . "\r\n";
+			$message .= __('Login:', 'monitor_login') . ' ' . esc_attr($user->data->user_login) . "\r\n";
 			$message .= __('IP Address:', 'monitor_login') . ' ' . esc_attr($ip) . "\r\n";
 			$message .= __('WordPress Address:', 'monitor_login') . ' ' . get_option('siteurl') . "\r\n";
 			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
@@ -324,7 +328,22 @@ class mtekk_monitor_login
 			$subject = __('Unknown Device Login Attempt', 'monitor_login');
 			//Send our email out
 			wp_mail($email, $subject, apply_filters($this->unique_prefix . '_message', $message));
+			//Assemble our data
+			$data = array(
+				'ip' => esc_attr($ip), 
+				'useragent' => esc_attr($_SERVER['HTTP_USER_AGENT']), 
+				'lastseen' => date('Y-m-d H:i:s'));
+			//Add the new device to the known device list
+			$known_devices[] = $data;
 		}
+		update_user_meta($user->data->ID, $this->unique_prefix . '_known_devices', $known_devices);
+	}
+	/**
+	 * This function adds a device to the known devices list
+	 */
+	function add_device()
+	{
+		
 	}
 	/**
 	 * We hook this function into the authenticate filter, allowing us to do some cool things.
