@@ -290,20 +290,23 @@ class mtekk_monitor_login
 		$known = false;
 		//Get our array of known devices for this user
 		$known_devices = get_user_meta($user->data->ID, $this->unique_prefix . '_known_devices', true);
-		//Loop through them all
-		foreach($known_devices as $key => $device)
+		if(is_array($known_devices))
 		{
-			//Check IP first
-			if($device['ip'] === esc_attr($ip))
+			//Loop through them all
+			foreach($known_devices as $key => $device)
 			{
-				//Check useragent next
-				if($device['useragent'] === esc_attr($_SERVER['HTTP_USER_AGENT']))
+				//Check IP first
+				if($device['ip'] === esc_attr($ip))
 				{
-					//Update the last seen time
-					$known_devices[$key]['lastseen'] = date('Y-m-d H:i:s');
-					$known = true;
-					//Might as well stop here
-					break;
+					//Check useragent next
+					if($device['useragent'] === esc_attr($_SERVER['HTTP_USER_AGENT']))
+					{
+						//Update the last seen time
+						$known_devices[$key]['lastseen'] = date('Y-m-d H:i:s');
+						$known = true;
+						//Might as well stop here
+						break;
+					}
 				}
 			}
 		}
@@ -376,7 +379,7 @@ class mtekk_monitor_login
 			$message .= __('Referer:', 'monitor_login') . ' ' . esc_url($_SERVER['HTTP_REFERER']) . "\r\n";
 			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
 			$message .= __('User Agent:', 'monitor_login') . ' ' .  esc_attr($_SERVER['HTTP_USER_AGENT']) . "\r\n";
-			$message .= __('$_REQUEST:', 'monitor_login') . ' ' .  esc_attr($_REQUEST) . "\r\n";
+			$message .= __('$_REQUEST:', 'monitor_login') . ' ' .  esc_attr(var_export($_REQUEST, true)) . "\r\n";
 			$message .= __('If this was not you, someone may be trying to gain unauthorized access to your account.', 'monitor_login');
 			$subject = __('Unsuccessful Login Attempt', 'monitor_login');
 			//Send our email out
