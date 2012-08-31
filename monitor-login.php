@@ -27,10 +27,10 @@ DomainPath: /languages/
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-if(!function_exists('random_string'))
+/*if(!function_exists('random_string'))
 {
 	require_once(dirname(__FILE__) . '/includes/random_string.php');
-}
+}*/
 /**
  * The plugin class 
  */
@@ -327,7 +327,7 @@ class mtekk_monitor_login
 			$message .= __('If this was not you, someone may have gained unauthorized access to your account.', 'monitor_login');
 			$subject = __('Unknown Device Login Attempt', 'monitor_login');
 			//Send our email out
-			wp_mail($email, $subject, apply_filters($this->unique_prefix . '_message', $message));
+			wp_mail($user->data->user_email, $subject, apply_filters($this->unique_prefix . '_message', $message));
 			//Assemble our data
 			$data = array(
 				'ip' => esc_attr($ip), 
@@ -388,6 +388,13 @@ class mtekk_monitor_login
 			{
 				$ip = $_SERVER['REMOTE_ADDR'];
 			}
+			$clean_request = array();
+			//Loop around all of the request items
+			foreach($_REQUEST as $key => $item)
+			{
+				//Escape the item, place it in the clean array
+				$clean_request[$key] = esc_attr($item);
+			}
 			//Compose our message
 			$message = __('Someone attempted to login using:', 'monitor_login') . "\r\n";
 			$message .= __('Login:', 'monitor_login') . ' ' . esc_attr($username) . "\r\n";
@@ -398,7 +405,7 @@ class mtekk_monitor_login
 			$message .= __('Referer:', 'monitor_login') . ' ' . esc_url($_SERVER['HTTP_REFERER']) . "\r\n";
 			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
 			$message .= __('User Agent:', 'monitor_login') . ' ' .  esc_attr($_SERVER['HTTP_USER_AGENT']) . "\r\n";
-			$message .= __('$_REQUEST:', 'monitor_login') . ' ' .  esc_attr(var_export($_REQUEST, true)) . "\r\n";
+			$message .= __('$_REQUEST:', 'monitor_login') . ' ' .  var_export($clean_request, true) . "\r\n";
 			$message .= __('If this was not you, someone may be trying to gain unauthorized access to your account.', 'monitor_login');
 			$subject = __('Unsuccessful Login Attempt', 'monitor_login');
 			//Send our email out
