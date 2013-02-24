@@ -3,7 +3,7 @@
 Plugin Name: Monitor Logins
 Plugin URI: http://mtekk.us/code/
 Description: Simple plugin that monitors the login and password for the admin account
-Version: 0.0.4
+Version: 0.1.0
 Author: John Havlik
 Author URI: http://mtekk.us/
 License: GPL2
@@ -11,7 +11,7 @@ TextDomain: monitor-login
 DomainPath: /languages/
 
 */
-/*  Copyright 2012  John Havlik  (email : mtekkmonkey@gmail.com)
+/*  Copyright 2012-2013 John Havlik  (email : mtekkmonkey@gmail.com)
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ DomainPath: /languages/
  */
 class mtekk_monitor_login
 {
-	protected $version = '0.0.3';
+	protected $version = '0.1.0';
 	protected $full_name = 'Monitor Logins';
 	protected $short_name = 'Monitor Login';
 	protected $access_level = 'manage_options';
@@ -88,7 +88,7 @@ class mtekk_monitor_login
 			<td>
 				<label for="<?php echo $this->unique_prefix;?>_send_notification_emails">
 					<input id="<?php echo $this->unique_prefix;?>_send_notification_emails" name="<?php echo $this->unique_prefix;?>_send_notification_emails" type="checkbox" value="true" <?php checked(true, $notify);?>/>
-					<?php _e('Send an email when a failed login attempt occurs.', 'monitor_login');?>
+					<?php _e('Send an email when a failed login attempt occurs or when a new device logs in', 'monitor_login');?>
 				</label>
 			</td>
 		</tr>
@@ -405,12 +405,15 @@ class mtekk_monitor_login
 			$message .= __('Referer:', 'monitor_login') . ' ' . esc_url($_SERVER['HTTP_REFERER']) . "\r\n";
 			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
 			$message .= __('User Agent:', 'monitor_login') . ' ' .  esc_attr($_SERVER['HTTP_USER_AGENT']) . "\r\n";
-			$message .= __('$_REQUEST:', 'monitor_login') . ' ' .  var_export($clean_request, true) . "\r\n";
+			//In debug mode give more information
+			if(WP_DEBUG)
+			{
+				$message .= __('$_REQUEST:', 'monitor_login') . ' ' .  var_export($clean_request, true) . "\r\n";
+			}
 			$message .= __('If this was not you, someone may be trying to gain unauthorized access to your account.', 'monitor_login');
 			$subject = __('Unsuccessful Login Attempt', 'monitor_login');
 			//Send our email out
 			wp_mail($email, $subject, apply_filters($this->unique_prefix . '_message', $message));
-			//var_dump($email, $subject, $message);
 		}
 		return $user;
 	}
