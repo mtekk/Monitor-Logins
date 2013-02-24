@@ -58,15 +58,15 @@ class mtekk_monitor_login
 		//Need to hook to both the edit and personal actions with the same function
 		add_action('edit_user_profile_update', array($this, 'update_personal_options'));
 		add_action('personal_options_update', array($this, 'update_personal_options'));
-		//We'll use this to recorde sucessfull logins
+		//We'll use this to recorde successful logins
 		add_action('wp_login', array($this, 'login_log'), 99, 2);
 		add_action('wp_login', array($this, 'dev_check'), 99, 2);
 		//We show our activity history in the user profile page
 		add_action('show_user_profile', array($this, 'activity_history'));
 		//We want to add some custom login fields
-		add_action('login_form', array($this, 'custom_login_fields'));
+		//add_action('login_form', array($this, 'custom_login_fields'));
 		//We need to check against our custom login fields
-		add_filter('wp_authenticate_user', array($this, 'verify_custom_fields'), 10, 2);
+		//add_filter('wp_authenticate_user', array($this, 'verify_custom_fields'), 10, 2);
 	}
 	function admin_init()
 	{
@@ -88,39 +88,11 @@ class mtekk_monitor_login
 			<td>
 				<label for="<?php echo $this->unique_prefix;?>_send_notification_emails">
 					<input id="<?php echo $this->unique_prefix;?>_send_notification_emails" name="<?php echo $this->unique_prefix;?>_send_notification_emails" type="checkbox" value="true" <?php checked(true, $notify);?>/>
-					<?php _e('Send an email when a failed login attempt occurs or when a new device logs in', 'monitor_login');?>
+					<?php _e('Send an email when a failed login attempt occurs or when an unrecognized device logs in', 'monitor_login');?>
 				</label>
 			</td>
 		</tr>
 		<?php
-	}
-	/**
-	 * Adds a nonce, and a few other hidden fields to catch really stupid bots
-	 */
-	function custom_login_fields()
-	{
-		wp_nonce_field('login', $this->unique_prefix . '_nonce');
-	}
-	/**
-	 * We hook this function into the wp_authenticate_user filter to verify our custom
-	 * fields for login validation
-	 * 
-	 * @param WP_User $user A user object, may be null
-	 * @param string $password The password that use used in the login attempt
-	 * @return WP_User|WP_Error object
-	 */
-	function verify_custom_fields($user, $password)
-	{
-		//var_dump(wp_verify_nonce('login', $_REQUEST[$this->unique_prefix . '_nonce']));
-		//If we already have an error, or we have a valid nonce, you're clear to go
-		//if(is_wp_error($user) || (isset($_REQUEST[$this->unique_prefix . '_nonce']) && wp_verify_nonce('login', $_REQUEST[$this->unique_prefix . '_nonce']) > 0))
-		//{
-			return $user;
-		/*}
-		$error = new WP_Error();
-		// This error should be the same as in "shake it" filter below
-		$error->add('invalid_nonce', __('Invalid login detected.', 'monitor_login'));
-		return $error;*/
 	}
 	/**
 	 * Saves the state of the added peronal options
@@ -318,7 +290,7 @@ class mtekk_monitor_login
 		if(!$known)
 		{
 			//Compose our message
-			$message = __('Someone sucessfully logged in using:', 'monitor_login') . "\r\n";
+			$message = __('Someone successfully logged in using:', 'monitor_login') . "\r\n";
 			$message .= __('Login:', 'monitor_login') . ' ' . esc_attr($user->data->user_login) . "\r\n";
 			$message .= __('IP Address:', 'monitor_login') . ' ' . esc_attr($ip) . "\r\n";
 			$message .= __('WordPress Address:', 'monitor_login') . ' ' . get_option('siteurl') . "\r\n";
@@ -357,7 +329,7 @@ class mtekk_monitor_login
 	 */
 	function send_bad_login($user, $username, $password)
 	{
-		//If the login was unsucessfull, we have some work to do
+		//If the login was unsuccessful, we have some work to do
 		if(is_wp_error($user) && $username !== '')
 		{
 			//If the username exists send them an email
@@ -406,7 +378,7 @@ class mtekk_monitor_login
 			$message .= __('At:', 'monitor_login') . ' ' . date('Y-m-d H:i:s e') . "\r\n";
 			$message .= __('User Agent:', 'monitor_login') . ' ' .  esc_attr($_SERVER['HTTP_USER_AGENT']) . "\r\n";
 			//In debug mode give more information
-			if(WP_DEBUG)
+			if(defined('MTEKK_DEBUG') && MTEKK_DEBUG)
 			{
 				$message .= __('$_REQUEST:', 'monitor_login') . ' ' .  var_export($clean_request, true) . "\r\n";
 			}
