@@ -266,6 +266,9 @@ class mtekk_monitor_login
 		$known = false;
 		//Get our array of known devices for this user
 		$known_devices = get_user_meta($user->data->ID, $this->unique_prefix . '_known_devices', true);
+		//Cleanup our devices before doing anything else
+		$this->dev_cleanup($known_devices);
+		//Check to see if this is aknown device
 		if(is_array($known_devices))
 		{
 			//Loop through them all
@@ -309,6 +312,30 @@ class mtekk_monitor_login
 			$known_devices[] = $data;
 		}
 		update_user_meta($user->data->ID, $this->unique_prefix . '_known_devices', $known_devices);
+	}
+	/**
+	 * This function cleans up the known devices list
+	 * 
+	 * @param array $devices Array
+	 */
+	function dev_cleanup(&$devices)
+	{
+		if(is_array($devices))
+		{
+			//Expire after 90 days
+			$max_age = 90*24*60*60;
+			//Loop through them all
+			foreach($devices as $key => $device)
+			{
+				//Get the last seen date in seconds
+				$last_seen = strtotime($device['lastseen']);
+				//If we're older than the max age, remove
+				if(time() - $last_seen >= $max_age)
+				{
+					unset($devices[$key]);
+				}
+			}
+		}
 	}
 	/**
 	 * This function adds a device to the known devices list
