@@ -2,14 +2,13 @@
 /*
 Plugin Name: Monitor Logins
 Plugin URI: http://mtekk.us/code/
-Description: Simple plugin that monitors the login and password for the admin account
+Description: Simple plugin that monitors login attempts
 Version: 0.1.0
 Author: John Havlik
 Author URI: http://mtekk.us/
 License: GPL2
 TextDomain: monitor-login
 DomainPath: /languages/
-
 */
 /*  Copyright 2012-2013 John Havlik  (email : mtekkmonkey@gmail.com)
 
@@ -27,10 +26,6 @@ DomainPath: /languages/
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-/*if(!function_exists('random_string'))
-{
-	require_once(dirname(__FILE__) . '/includes/random_string.php');
-}*/
 /**
  * The plugin class 
  */
@@ -50,7 +45,7 @@ class mtekk_monitor_login
 	 */
 	function __construct()
 	{
-		//We set the plugin basename here, could manually set it, but this is for demonstration purposes
+		//We set the plugin basename here
 		$this->plugin_basename = plugin_basename(__FILE__);
 		//Hook into the authenticate filter, we want to run close to last
 		add_filter('authenticate', array($this, 'send_bad_login'), 9999, 3);
@@ -322,8 +317,11 @@ class mtekk_monitor_login
 	{
 		if(is_array($devices))
 		{
+			$max_days = 90;
+			//Allow users to change the expire time using a filter
+			$max_days = apply_filters($this->unique_prefix . '_device_expire', $max_days);
 			//Expire after 90 days
-			$max_age = 90*24*60*60;
+			$max_age = $max_days*24*60*60;
 			//Loop through them all
 			foreach($devices as $key => $device)
 			{
@@ -336,13 +334,6 @@ class mtekk_monitor_login
 				}
 			}
 		}
-	}
-	/**
-	 * This function adds a device to the known devices list
-	 */
-	function add_device()
-	{
-		
 	}
 	/**
 	 * We hook this function into the authenticate filter, allowing us to do some cool things.
