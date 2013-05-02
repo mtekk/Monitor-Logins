@@ -3,7 +3,7 @@
 Plugin Name: Monitor Logins
 Plugin URI: http://mtekk.us/code/
 Description: Simple plugin that monitors login attempts
-Version: 0.1.0
+Version: 0.2.0
 Author: John Havlik
 Author URI: http://mtekk.us/
 License: GPL2
@@ -31,7 +31,7 @@ DomainPath: /languages/
  */
 class mtekk_monitor_login
 {
-	protected $version = '0.1.0';
+	protected $version = '0.2.0';
 	protected $full_name = 'Monitor Logins';
 	protected $short_name = 'Monitor Login';
 	protected $access_level = 'manage_options';
@@ -68,6 +68,32 @@ class mtekk_monitor_login
 		//Hook into the profile personal options
 		add_action('personal_options', array($this, 'personal_options'));
 		add_filter('admin_footer_text', array($this, 'activity'), 10);
+		//Register our settings and add our field
+		register_setting('general', $this->unique_prefix . '_monitor_non_existant', array($this, '_isset'));
+		add_settings_field($this->unique_prefix . '_monitor_non_existant', __('Monitoring', 'monitor_login'), array($this, 'admin_options'), 'general');
+	}
+	/**
+	 * Simple wrapper for isset keyword so we can use it as a callback
+	 * 
+	 * @param mixed $value The value to check if it is set
+	 * @return bool Whether or not the input value is set
+	 */
+	function _isset($value)
+	{
+		return isset($value);
+	}
+	/**
+	 * Adds our extra option to the general settings page
+	 */
+	function admin_options()
+	{
+		
+		?>
+		<label for="<?php echo $this->unique_prefix;?>_monitor_non_existant">
+			<input id="<?php echo $this->unique_prefix;?>_monitor_non_existant" name="<?php echo $this->unique_prefix;?>_monitor_non_existant" type="checkbox" value="true" <?php checked(true, get_option($this->unique_prefix . '_monitor_non_existant'));?>/>
+			<?php _e('Send an email to the administrator email address when a failed login attempt on a non-existant account occurs.', 'monitor_login');?>
+		</label>
+		<?php
 	}
 	/**
 	 * Adds the user specific extra options to the personal options area
@@ -83,7 +109,7 @@ class mtekk_monitor_login
 			<td>
 				<label for="<?php echo $this->unique_prefix;?>_send_notification_emails">
 					<input id="<?php echo $this->unique_prefix;?>_send_notification_emails" name="<?php echo $this->unique_prefix;?>_send_notification_emails" type="checkbox" value="true" <?php checked(true, $notify);?>/>
-					<?php _e('Send an email when a failed login attempt occurs or when an unrecognized device logs in', 'monitor_login');?>
+					<?php _e('Send an email when a failed login attempt occurs or when an unrecognized device logs in.', 'monitor_login');?>
 				</label>
 			</td>
 		</tr>
@@ -367,7 +393,15 @@ class mtekk_monitor_login
 			//Otherwise send the admin an email
 			else
 			{
-				$email = get_option('admin_email');
+				//If the admin has notifications enabled sent them an email, otherwise exit
+				if(get_option($this->unique_prefix . '_monitor_non_existant'))
+				{
+					$email = get_option('admin_email');
+				}
+				else
+				{
+					return $user;
+				}
 			}
 			//Figure out the IP address
 			if(isset($_SERVER['HTTP_X_FORWARDED_FOR']))
