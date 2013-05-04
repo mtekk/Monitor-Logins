@@ -70,7 +70,7 @@ class mtekk_monitor_login
 		add_filter('admin_footer_text', array($this, 'activity'), 10);
 		//Register our settings and add our field
 		register_setting('general', $this->unique_prefix . '_monitor_non_existant', array($this, '_isset'));
-		add_settings_field($this->unique_prefix . '_monitor_non_existant', __('Monitoring', 'monitor_login'), array($this, 'admin_options'), 'general');
+		add_settings_field($this->unique_prefix . '_monitor_non_existant', __('Account Monitoring', 'monitor_login'), array($this, 'admin_options'), 'general');
 	}
 	/**
 	 * Simple wrapper for isset keyword so we can use it as a callback
