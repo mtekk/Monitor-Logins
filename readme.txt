@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=FD5XE
 Tags: login, security, notification
 Requires at least: 3.5
 Tested up to: 3.6
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 Notifies users of failed login attempts to their account, and successful login attempts by previously unseen devices.
 
@@ -33,6 +33,8 @@ Please visit [Monitor Login's](http://mtekk.us/code/monior-logins/#installation 
 
 == Changelog ==
 
+= 0.2.1 =
+* Bug fix: Remove call to deprecated function `get_currentuserinfo()`.
 = 0.2.0 =
 * New feature: Added option to turn off monitoring of non-existent accounts.
 = 0.1.0 =
