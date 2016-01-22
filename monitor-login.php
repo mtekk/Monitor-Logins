@@ -3,14 +3,14 @@
 Plugin Name: Monitor Logins
 Plugin URI: http://mtekk.us/code/
 Description: Simple plugin that monitors login attempts
-Version: 0.2.0
+Version: 0.2.1
 Author: John Havlik
 Author URI: http://mtekk.us/
 License: GPL2
 TextDomain: monitor-login
 DomainPath: /languages/
 */
-/*  Copyright 2012-2013 John Havlik  (email : mtekkmonkey@gmail.com)
+/*  Copyright 2012-2016 John Havlik  (email : john.havlik@mtekk.us)
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ DomainPath: /languages/
  */
 class mtekk_monitor_login
 {
-	protected $version = '0.2.0';
+	protected $version = '0.2.1';
 	protected $full_name = 'Monitor Logins';
 	protected $short_name = 'Monitor Login';
 	protected $access_level = 'manage_options';
@@ -182,7 +182,7 @@ class mtekk_monitor_login
 	{
 		global $current_user;
 		//Call is unnecessary, but done for good measure
-		get_currentuserinfo();
+		$current_user = wp_get_current_user();
 		//Get the login stream
 		$activity = get_user_meta($current_user->data->ID, $this->unique_prefix . '_activity', true);
 		if(is_array($activity))
